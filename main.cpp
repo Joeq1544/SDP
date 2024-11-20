@@ -2,101 +2,93 @@
 #include "FEHUtility.h"
 #include <FEHRandom.h>
 
-void AnimationTraining();
+void drawMenu();
+void navigateMenu();
+void displayGame();
+void displayStats();
+void displayInstructions();
+void displayCredits();
 
-/*
-    SDP Training Minigame #1
-  
-    Make the shapes race across the ​screen.​
-    Change their colors when they reach​ the finish line.​
-*/
-void AnimationTraining() {
-    int x1 = 50, y1 = 50;
-    int x2 = 50, y2 = 100;
-    int r = 10;
 
-    // Draw Racer 1
-    LCD.SetFontColor(RED);
-    LCD.DrawCircle(x1, y1, r);
-    LCD.FillCircle(x1, y1, r);
-
-    // Draw Racer 2
-    LCD.SetFontColor(BLUE);
-    LCD.DrawCircle(x2, y2, r);
-    LCD.FillCircle(x2, y2, r);
-
-    LCD.Update();
-
-    // Make racers move across the screen
-    while (x1 < 300 && x2 < 300) {
-
-        // Draw finish line
-        LCD.SetFontColor(WHITE);
-         LCD.DrawLine(300, 10, 300, 220); 
-        
-        
-        // Clear previous racers by drawing black over them
-        // Draw Racer 1
-        LCD.SetFontColor(BLACK);
-        LCD.DrawCircle(x1, y1, r);
-        LCD.FillCircle(x1, y1, r);
-
-        // Draw Racer 2
-        LCD.SetFontColor(BLACK);
-        LCD.DrawCircle(x2, y2, r);
-        LCD.FillCircle(x2, y2, r);
-
-        // Update racer coordinates
-        x1 += Random.RandInt() / 10000;
-        x2 += Random.RandInt() / 7000;
-
-        
-        // Redraw racers with different colors - don't forget to sleep!
-        // Draw Racer 1
-        LCD.SetFontColor(RED);
-        LCD.DrawCircle(x1, y1, r);
-        LCD.FillCircle(x1, y1, r);
-        // Draw Racer 2
-        LCD.SetFontColor(BLUE);
-        LCD.DrawCircle(x2, y2, r);
-        LCD.FillCircle(x2, y2, r);
-        Sleep(100);
-    }
-    if(x1>=300)
+int main() {
+    bool running = true;
+    while (running)
     {
-        // Draw Racer 1
-        LCD.SetFontColor(YELLOW);
-        LCD.DrawCircle(x1, y1, r);
-        LCD.FillCircle(x1, y1, r);
-
-        // Draw Racer 2
-        LCD.SetFontColor(BURLYWOOD);
-        LCD.DrawCircle(x2, y2, r);
-        LCD.FillCircle(x2, y2, r);
+        LCD.Update();
+        drawMenu();
+        navigateMenu();
+        running = false;
     }
-    else{
-        // Draw Racer 1
-        LCD.SetFontColor(BURLYWOOD);
-        LCD.DrawCircle(x1, y1, r);
-        LCD.FillCircle(x1, y1, r);
+    while(1)
+    {
+        LCD.Update();
+    }
+    return 0;
+}
 
-        // Draw Racer 2
-        LCD.SetFontColor(YELLOW);
-        LCD.DrawCircle(x2, y2, r);
-        LCD.FillCircle(x2, y2, r);
+void drawMenu()
+{
+    LCD.SetBackgroundColor(BLACK);
+    LCD.SetFontColor(BLUE);
+    LCD.Clear();
+    LCD.FillRectangle(50,50,25,25);
+    LCD.FillRectangle(50,100,25,25);
+    LCD.FillRectangle(100,50,25,25);
+    LCD.FillRectangle(100,100,25,25);
+    LCD.WriteAt("Play",55,55);
+    LCD.WriteAt("Stats",55,105);
+    LCD.WriteAt("Instructions",105,55);
+    LCD.WriteAt("Credits",105,105);
+    LCD.Update();
+}
+
+void navigateMenu()
+{
+    //LCD.ClearBuffer();
+    int choice = -1;
+    int x;
+    int y;
+    int xtrash;
+    int ytrash;
+    while(choice < 0)
+    {
+        while(!LCD.Touch(&x,&y)){};
+        while(LCD.Touch(&xtrash,&ytrash)){};
+        if(x >= 50 && x <= 75 && y >= 50 && y <= 75)
+        {
+            choice = 1;
+            displayGame();
+        }
     }
 }
 
-int main() {
-    // Clear background
-    LCD.SetBackgroundColor(BLACK);
+void displayGame()
+{
     LCD.Clear();
+    LCD.Write("Play game here");
+    LCD.Update();
+}
 
-    AnimationTraining();
+void displayStats()
+{
+    LCD.Clear();
+    LCD.WriteLine("Total Distance: 160 meters.");
+    LCD.WriteLine("Max Distance: 63 Meters.");
+    LCD.WriteLine("Launches: 7");
+    LCD.Update();
+}
 
-    while (1) {
-        LCD.Update();
-        // Never end
-    }
-    return 0;
+void displayInstructions()
+{
+    LCD.Clear();
+    LCD.WriteLine("Instructions here.");
+    LCD.Update();
+}
+
+void displayCredits()
+{
+    LCD.Clear();
+    LCD.WriteLine("Avery Taylor");
+    LCD.Write("Joe Quinn");
+    LCD.Update();
 }
