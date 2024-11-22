@@ -1,6 +1,7 @@
 #include "FEHLCD.h"
 #include "FEHUtility.h"
 #include <FEHRandom.h>
+#include <math.h>
 
 // define functions used
 void drawMenu();
@@ -10,13 +11,9 @@ void displayStats();
 void displayInstructions();
 void displayCredits();
 // functions used for game
-void SetUpgrades();
-void SetAngle();
-void Launch();
-void UpdatePosition();
-void UpdateScreen();
-void CheckGround();
-void UpdatePoints();
+
+void UpdatePosition(int *x, int *y, float *vx, float *vy, float *al); // still need time between frames to finish
+
 void EndScreen(float arclength, float points); // code completed
 
 
@@ -226,6 +223,27 @@ void displayCredits() // credits menu
 // a lot of the specific ones (angle, launch, position/screen, collision, etc) will require pointers to permanently modify the values!
 // need more formal discussion on the specific logistics of the game to figure out most of this
 
+
+void UpdatePosition(int *xPosition, int *yPosition, float *xVelocity, float *yVelocity, float *arcLength) // accepts the current position/velocity/total arclength, updates the values based on the change in time between frames
+{
+    // accelatarion is 9.8 m/s^2
+    // assuming each pixel is a meter?
+    // time between frames = ??????????????????????????????????????????????????????????????
+    float t; // need to figure out how many seconds between frames!!!!
+    float a = 9.8; // accelaration due to gravity
+
+    // equations used based on kinematic equations - xf = xi + vt, vf = vi + at
+    // calculate change in position
+    *xPosition+=((*xVelocity)*t);
+    *yPosition+=((*yVelocity)*t);
+
+    // calculate the change in the vertical velocity due to gravity
+    *yVelocity+=(a*t);
+
+    // calculate change in arclength, add to total arc length
+    *arcLength+=pow((pow(*xPosition, 2))+(pow(*yPosition, 2)), 0.5); // displacement equation
+
+}
 
 void EndScreen(float runLen, float pointTot) // displays the final results of the game, accepting the arclength value of that run and current point value
 // don't need pointers since none of the values need to be modified
