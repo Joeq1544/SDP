@@ -2,6 +2,7 @@
 #include "FEHUtility.h"
 #include <FEHRandom.h>
 #include <math.h>
+using namespace FEHIcon;
 
 // define functions used
 void drawMenu();
@@ -10,6 +11,7 @@ void displayGame();
 void displayStats();
 void displayInstructions();
 void displayCredits();
+void returnToMainMenu();
 // functions used for game
 
 void UpdatePosition(int *x, int *y, float *vx, float *vy, float *al); // still need time between frames to finish
@@ -22,7 +24,6 @@ int main() {
     while (running)
     {
         LCD.Update();
-        FEHIcon::Icon *buttons;
         drawMenu();
         running = false;
     }
@@ -35,7 +36,6 @@ int main() {
 
 void drawMenu()
 {
-    using namespace FEHIcon;
     // set standard values for menu
     LCD.SetBackgroundColor(BLACK);
     LCD.SetFontColor(RED);
@@ -90,67 +90,25 @@ void drawMenu()
 
 void displayGame() // runs the game itself
 {
-    using namespace FEHIcon;
     LCD.Clear();
     LCD.WriteLine("Play game here");
-    // need a constant "return to menu" button on the screen
-    Icon menuButton;
-    menuButton.SetProperties("Return to Menu", 40, 182, 240, 26, WHITE, RED);
-    menuButton.Draw();
-    LCD.Update();
-    // check if/when menu button is clicked
-    // define extra variables for the while loop
-    int choice = -1; // checks if the user has clicked a button
-    int x, y;
-    int xtrash, ytrash; // throwaway values
-    // check if the user has clicked, then check if menu button was clicked
-    while(choice < 0)
-    {
-        while(!LCD.Touch(&x,&y)){};
-        while(LCD.Touch(&xtrash,&ytrash)){};
-        if(menuButton.Pressed(x,y,1)==1)
-        {
-            drawMenu(); // returns to menu
-            choice = 1;
-        }
-    }
+    
+    returnToMainMenu();
 }
 
 void displayStats() // statistics menu
 {
-    using namespace FEHIcon;
     LCD.Clear();
     // display stats - total distance of arc length, maximum arc length, and total launches played
     LCD.WriteLine("Total Distance: 0 meters.");
     LCD.WriteLine("Max Distance: 0 Meters.");
     LCD.WriteLine("Launches: 0");
 
-    // have to return to menu - create functional menu button
-    Icon menuButton;
-    menuButton.SetProperties("Return to Menu", 40, 182, 240, 26, WHITE, RED);
-    menuButton.Draw();
-    LCD.Update();
-    // check if/when menu button is clicked
-    // define extra variables for the while loop
-    int choice = -1; // checks if the user has clicked a button
-    int x, y;
-    int xtrash, ytrash; // throwaway values
-    // check if the user has clicked, then check if menu button was clicked
-    while(choice < 0)
-    {
-        while(!LCD.Touch(&x,&y)){};
-        while(LCD.Touch(&xtrash,&ytrash)){};
-        if(menuButton.Pressed(x,y,1)==1)
-        {
-            drawMenu(); // returns to menu
-            choice = 1;
-        }
-    }
+    returnToMainMenu();
 }
 
 void displayInstructions() // instructions menu
 {
-    using namespace FEHIcon;
     LCD.Clear();
     // have issues with text looping - must set text in different lines to work around
     LCD.WriteLine("Set the angle of the");
@@ -160,44 +118,25 @@ void displayInstructions() // instructions menu
     LCD.WriteLine("distance traveled. Buy");
     LCD.WriteLine("upgrades with your points and keep playing!");
 
-    // have to return to menu - create functional menu button
-    Icon menuButton;
-    menuButton.SetProperties("Return to Menu", 40, 182, 240, 26, WHITE, RED);
-    menuButton.Draw();
-    LCD.Update();
-
-    // check if/when menu button is clicked
-    // define extra variables for the while loop
-    int choice = -1; // checks if the user has clicked a button
-    int x, y;
-    int xtrash, ytrash; // throwaway values
-    // check if the user has clicked, then check if menu button was clicked
-    while(choice < 0)
-    {
-        while(!LCD.Touch(&x,&y)){};
-        while(LCD.Touch(&xtrash,&ytrash)){};
-        if(menuButton.Pressed(x,y,1)==1)
-        {
-            drawMenu(); // returns to menu
-            choice = 1;
-        }
-    }
+    returnToMainMenu();
 }
 
 void displayCredits() // credits menu
 {
-    using namespace FEHIcon;
     LCD.Clear();
     LCD.WriteLine("Avery Taylor");
     LCD.WriteLine("Joe Quinn");
     LCD.WriteLine("Inspired by Learn to Fly");
 
-    // have to return to menu - create functional menu button
+    returnToMainMenu();
+}
+
+void returnToMainMenu()
+{
     Icon menuButton;
     menuButton.SetProperties("Return to Menu", 40, 182, 240, 26, WHITE, RED);
     menuButton.Draw();
     LCD.Update();
-
     // check if/when menu button is clicked
     // define extra variables for the while loop
     int choice = -1; // checks if the user has clicked a button
