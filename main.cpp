@@ -9,6 +9,15 @@ void displayGame();
 void displayStats();
 void displayInstructions();
 void displayCredits();
+// functions used for game
+void SetUpgrades();
+void SetAngle();
+void Launch();
+void UpdatePosition();
+void UpdateScreen();
+void CheckGround();
+void UpdatePoints();
+void EndScreen(float arclength, float points); // code completed
 
 
 int main() {
@@ -86,7 +95,7 @@ void displayGame() // runs the game itself
 {
     using namespace FEHIcon;
     LCD.Clear();
-    LCD.Write("Play game here");
+    LCD.WriteLine("Play game here");
     // need a constant "return to menu" button on the screen
     Icon menuButton;
     menuButton.SetProperties("Return to Menu", 40, 182, 240, 26, WHITE, RED);
@@ -97,14 +106,14 @@ void displayGame() // runs the game itself
     int choice = -1; // checks if the user has clicked a button
     int x, y;
     int xtrash, ytrash; // throwaway values
-    // check if the user has clicked, then check which button - run respective menu/game
+    // check if the user has clicked, then check if menu button was clicked
     while(choice < 0)
     {
         while(!LCD.Touch(&x,&y)){};
         while(LCD.Touch(&xtrash,&ytrash)){};
         if(menuButton.Pressed(x,y,1)==1)
         {
-            drawMenu(); // starts running the game
+            drawMenu(); // returns to menu
             choice = 1;
         }
     }
@@ -129,14 +138,14 @@ void displayStats() // statistics menu
     int choice = -1; // checks if the user has clicked a button
     int x, y;
     int xtrash, ytrash; // throwaway values
-    // check if the user has clicked, then check which button - run respective menu/game
+    // check if the user has clicked, then check if menu button was clicked
     while(choice < 0)
     {
         while(!LCD.Touch(&x,&y)){};
         while(LCD.Touch(&xtrash,&ytrash)){};
         if(menuButton.Pressed(x,y,1)==1)
         {
-            drawMenu(); // starts running the game
+            drawMenu(); // returns to menu
             choice = 1;
         }
     }
@@ -165,14 +174,14 @@ void displayInstructions() // instructions menu
     int choice = -1; // checks if the user has clicked a button
     int x, y;
     int xtrash, ytrash; // throwaway values
-    // check if the user has clicked, then check which button - run respective menu/game
+    // check if the user has clicked, then check if menu button was clicked
     while(choice < 0)
     {
         while(!LCD.Touch(&x,&y)){};
         while(LCD.Touch(&xtrash,&ytrash)){};
         if(menuButton.Pressed(x,y,1)==1)
         {
-            drawMenu(); // starts running the game
+            drawMenu(); // returns to menu
             choice = 1;
         }
     }
@@ -197,14 +206,64 @@ void displayCredits() // credits menu
     int choice = -1; // checks if the user has clicked a button
     int x, y;
     int xtrash, ytrash; // throwaway values
-    // check if the user has clicked, then check which button - run respective menu/game
+    // check if the user has clicked, then check if menu button was clicked
     while(choice < 0)
     {
         while(!LCD.Touch(&x,&y)){};
         while(LCD.Touch(&xtrash,&ytrash)){};
         if(menuButton.Pressed(x,y,1)==1)
         {
-            drawMenu(); // starts running the game
+            drawMenu(); // returns to menu
+            choice = 1;
+        }
+    }
+}
+
+// -- definitions for functions used in game itself: --
+
+// put your function definitions for the game here for ease of access
+// also, modify the declarations I made above if you need inputs - we likely will for a lot of the main ones in the motion
+// a lot of the specific ones (angle, launch, position/screen, collision, etc) will require pointers to permanently modify the values!
+// need more formal discussion on the specific logistics of the game to figure out most of this
+
+
+void EndScreen(float runLen, float pointTot) // displays the final results of the game, accepting the arclength value of that run and current point value
+// don't need pointers since none of the values need to be modified
+{
+    using namespace FEHIcon; // for the button inputs
+    LCD.Clear();
+    // tell the user how many points they've earned/how far they went and their current point total
+    LCD.Write("Distance Traveled: ");
+    LCD.WriteLine(runLen);
+    LCD.Write("Total Points: ");
+    LCD.WriteLine(pointTot);
+
+    // prompt the user to either play again or return to menu
+    Icon menuButton, resetButton;
+    menuButton.SetProperties("Return to Menu", 40, 182, 240, 26, WHITE, RED);
+    menuButton.Draw();
+    resetButton.SetProperties("Play Again", 40, 182, 240, 26, WHITE, RED);
+    resetButton.Draw();
+    LCD.Update();
+
+    // check if/when one of the buttons are clicked
+    // define extra variables for the while loop
+    int choice = -1; // checks if the user has clicked a button
+    int x, y;
+    int xtrash, ytrash; // throwaway values
+    // check if the user has clicked, then check which button - run respective function
+    while(choice < 0)
+    {
+        while(!LCD.Touch(&x,&y)){};
+        while(LCD.Touch(&xtrash,&ytrash)){};
+        if(menuButton.Pressed(x,y,1)==1)
+        {
+            drawMenu(); // returns to menu
+            choice = 1;
+        }
+        if(menuButton.Pressed(x,y,1)==1)
+        {
+            displayGame(); // resets the game
             choice = 1;
         }
     }
