@@ -17,12 +17,14 @@ class gameVals
 {
     private:
     int xPosition, yPosition; // current position of projectile
-    float xVelocity, yVelocity, arcLength; // behind the scenes velocity stuff and arc length of run
+    float xVelocity, yVelocity; // behind the scenes velocity stuff
     float a = 9.8; // accelaration due to gravity
+    float arcLength = 0, pointsTot = 0; // arc length for each run and total points collected
     public:
-    void UpdatePosition(int x, int y, float vx, float vy, float al); // still need time between frames to finish
+    void SetUpgrades();
+    void UpdatePosition(); // code completed
 
-    void EndScreen(float arclength, float points); // code completed
+    void EndScreen(); // code completed
 };
 
 
@@ -98,8 +100,8 @@ void drawMenu()
 
 void displayGame() // runs the game itself
 {
-    LCD.Clear();
-    LCD.WriteLine("Play game here");
+    gameVals runGame; // class for running the game itself
+    runGame.SetUpgrades();
     
     returnToMainMenu();
 }
@@ -170,8 +172,48 @@ void returnToMainMenu()
 // a lot of the specific ones (angle, launch, position/screen, collision, etc) will require pointers to permanently modify the values!
 // need more formal discussion on the specific logistics of the game to figure out most of this
 
+void gameVals::SetUpgrades() // prompt the user to either purchase a power-up or continue to game
+{
+    // display points/options to screen
+    LCD.Clear();
+    LCD.Write("Total points:");
+    LCD.WriteLine(pointsTot);
+    LCD.WriteLine("Choose a powerup:");
 
-void gameVals::UpdatePosition(int xPosition, int yPosition, float xVelocity, float yVelocity, float arcLength) // accepts the current position/velocity/total arclength, updates the values based on the change in time between frames
+    // make buttons for each powerup available
+    Icon speedButton, gliderButton;
+    speedButton.SetProperties("Increase initial speed", 40, 182, 240, 26, WHITE, RED);
+    speedButton.Draw();
+    gliderButton.SetProperties("Reduce Gravity", 40, 130, 240, 26, WHITE, RED);
+    gliderButton.Draw();
+    gliderButton.SetProperties("Play Again", 40, 130, 240, 26, WHITE, RED);
+    gliderButton.Draw();
+    LCD.Update();
+
+    // check if/when one of the buttons are clicked
+    // define extra variables for the while loop
+    int choice = -1; // checks if the user has clicked a button
+    int x, y;
+    int xtrash, ytrash; // throwaway values
+    // check if the user has clicked, then check which button - run respective function
+    while(choice < 0)
+    {
+        while(!LCD.Touch(&x,&y)){};
+        while(LCD.Touch(&xtrash,&ytrash)){};
+        if(speedButton.Pressed(x,y,1)==1)
+        {
+            drawMenu(); // returns to menu
+            choice = 1;
+        }
+        if(gliderButton.Pressed(x,y,1)==1)
+        {
+            displayGame(); // resets the game
+            choice = 1;
+        }
+    }
+}
+
+void gameVals::UpdatePosition() // accepts the current position/velocity/total arclength, updates the values based on the change in time between frames
 {
     // accelatarion is 9.8 m/s^2
     // assuming each pixel is a meter?
@@ -191,22 +233,22 @@ void gameVals::UpdatePosition(int xPosition, int yPosition, float xVelocity, flo
 
 }
 
-void gameVals::EndScreen(float runLen, float pointTot) // displays the final results of the game, accepting the arclength value of that run and current point value
+void gameVals::EndScreen() // displays the final results of the game, accepting the arclength value of that run and current point value
 // don't need pointers since none of the values need to be modified
 {
     using namespace FEHIcon; // for the button inputs
     LCD.Clear();
     // tell the user how many points they've earned/how far they went and their current point total
     LCD.Write("Distance Traveled: ");
-    LCD.WriteLine(runLen);
+    LCD.WriteLine(arcLength);
     LCD.Write("Total Points: ");
-    LCD.WriteLine(pointTot);
+    LCD.WriteLine(pointsTot);
 
     // prompt the user to either play again or return to menu
     Icon menuButton, resetButton;
     menuButton.SetProperties("Return to Menu", 40, 182, 240, 26, WHITE, RED);
     menuButton.Draw();
-    resetButton.SetProperties("Play Again", 40, 182, 240, 26, WHITE, RED);
+    resetButton.SetProperties("Play Again", 40, 130, 240, 26, WHITE, RED);
     resetButton.Draw();
     LCD.Update();
 
