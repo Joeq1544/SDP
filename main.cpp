@@ -4,15 +4,21 @@
 #include <math.h>
 using namespace FEHIcon;
 
-// define functions used
+//
+//FUNCTIONS DECLARATIONS NOT ATTACHED TO A CLASS
+//
 void drawMenu();
-//void navigateMenu();
 void displayGame();
+void runGame();
 void displayStats();
 void displayInstructions();
 void displayCredits();
 void returnToMainMenu();
-// class used for game
+void clearScreen();
+
+//
+//CLASSES
+//
 class gameVals
 {
     private:
@@ -23,11 +29,55 @@ class gameVals
     public:
     void SetUpgrades();
     void UpdatePosition(); // code completed
-
     void EndScreen(); // code completed
 };
 
+class Projectile
+{
+    protected:
+        float screenXPos;
+        float screenYPos;
+        
+    public:
+        Projectile(){};
+        Projectile(float screenXPos, float screenYPos);
+        void draw();
+};
 
+class Obstacle : public Projectile
+{
+    public:
+        Obstacle(){};
+        void setVals(float screenXPos, float screenYPos);
+        void updateScreenPos(float xVel, float yVel);
+        
+};
+
+class Player : public Projectile
+{
+    protected:
+        float xPos;
+        float yPos;
+        float xVel;
+        float yVel;
+        float acceleration = -1;
+    public:
+        Player(float xPos, float yPos, float xVel, float yVel, float screenXPos, float screenYPos) : Projectile(screenXPos, screenYPos){
+            this->xPos = xPos;
+            this->yPos = yPos;
+            this->xVel = xVel;
+            this->yVel = yVel;
+        };
+        void startAnim();
+        void updatePos(float deltaTime);
+        void endAnim();
+        float getXVelocity();
+        float getYVelocity();
+};
+
+//
+//MAIN METHOD
+//
 
 int main() {
     bool running = true;
@@ -42,6 +92,16 @@ int main() {
         LCD.Update();
     }
     return 0;
+}
+
+//
+//FUNCTION DEFINITIONS NOT ATTACHED TO A CLASS
+//
+
+void clearScreen()
+{
+    LCD.Clear();
+    LCD.DrawRectangle(0,0,319,239);
 }
 
 void drawMenu()
@@ -100,6 +160,19 @@ void drawMenu()
 
 void displayGame() // runs the game itself
 {
+    Player player(0,0, 3, -5, 30, 180);
+    player.startAnim();
+    Obstacle obs[10];
+    int numObs = 0;
+    while(true)
+    {
+        double rand = std::rand()/(double)(RAND_MAX);
+        clearScreen();
+        player.updatePos(1.0/10);
+        player.draw();
+        LCD.Update();
+    }
+
     gameVals runGame; // class for running the game itself
     runGame.SetUpgrades();
     
@@ -164,6 +237,10 @@ void returnToMainMenu()
         }
     }
 }
+
+//
+//FUNCTION DEFINITIONS TIED TO A CLASS
+//
 
 // -- definitions for functions used in game itself: --
 
@@ -273,4 +350,65 @@ void gameVals::EndScreen() // displays the final results of the game, accepting 
             choice = 1;
         }
     }
+}
+
+Projectile :: Projectile(float screenXPos, float screenYPos)
+{
+    this->screenXPos = screenXPos;
+    this->screenYPos = screenYPos;
+}
+
+void Projectile :: draw()
+{
+    LCD.DrawCircle(screenXPos, screenYPos, 10);
+}
+
+void Player :: startAnim()
+{
+    while(screenXPos < 160 && screenYPos > 120)
+    {
+        screenXPos += 3 * 1.0;
+        xPos += 3 * 1.0/10;
+        screenYPos -= 2 * 1.0;
+        yPos -= 2 * 1.0;
+        clearScreen();
+        draw();
+        LCD.Update();
+    }
+}
+
+void Player :: updatePos(float deltaTime)
+{
+    xPos += xVel * deltaTime;
+    yPos += yVel * deltaTime;
+    yVel += acceleration * deltaTime;
+    LCD.WriteLine(xPos);
+    LCD.WriteLine(yPos);
+}
+
+void Player :: endAnim()
+{
+
+}
+
+float Player :: getXVelocity()
+{
+    return xVel;
+}
+
+float Player :: getYVelocity()
+{
+    return yVel;
+}
+
+void Obstacle :: setVals(float screenXPos, float screenYPos)
+{
+    this->screenXPos = screenXPos;
+    this->screenYPos = screenYPos;
+}
+
+void Obstacle :: updateScreenPos(float xVel, float yVel)
+{
+    screenXPos += xVel;
+    screenYPos += yVel;
 }
