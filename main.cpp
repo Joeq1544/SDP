@@ -27,7 +27,8 @@ class gameVals
     float a = 9.8; // accelaration due to gravity
     float arcLength = 0, pointsTot = 0; // arc length for each run and total points collected
     public:
-    void SetUpgrades();
+    void SetUpgrades(); // code mostly completed, may need discussion over small behind the scenes things
+    void SetAngle(); // buttons dealt with, left x/y velocity calculations up to you like you said
     void UpdatePosition(); // code completed
     void EndScreen(); // code completed
 };
@@ -257,14 +258,14 @@ void gameVals::SetUpgrades() // prompt the user to either purchase a power-up or
     LCD.WriteLine(pointsTot);
     LCD.WriteLine("Choose a powerup:");
 
-    // make buttons for each powerup available
-    Icon speedButton, gliderButton;
-    speedButton.SetProperties("Increase initial speed", 40, 182, 240, 26, WHITE, RED);
+    // make buttons for each powerup available, display to screen
+    Icon speedButton, gliderButton, skipButton;
+    speedButton.SetProperties("Double initial speed", 40, 182, 240, 26, WHITE, RED);
     speedButton.Draw();
-    gliderButton.SetProperties("Reduce Gravity", 40, 130, 240, 26, WHITE, RED);
+    gliderButton.SetProperties("Low gravity", 40, 130, 240, 26, WHITE, RED);
     gliderButton.Draw();
-    gliderButton.SetProperties("Play Again", 40, 130, 240, 26, WHITE, RED);
-    gliderButton.Draw();
+    skipButton.SetProperties("Skip Powerups", 40, 182, 240, 26, WHITE, RED);
+    skipButton.Draw();
     LCD.Update();
 
     // check if/when one of the buttons are clicked
@@ -279,15 +280,74 @@ void gameVals::SetUpgrades() // prompt the user to either purchase a power-up or
         while(LCD.Touch(&xtrash,&ytrash)){};
         if(speedButton.Pressed(x,y,1)==1)
         {
-            drawMenu(); // returns to menu
+            // doubles the initial velocity - powerup can increase several times? need to discuss maybe
+            xVelocity*=2;
+            yVelocity*=2;
             choice = 1;
         }
         if(gliderButton.Pressed(x,y,1)==1)
         {
-            displayGame(); // resets the game
+            // sets gravity to half of standard value - one time purchase or can increase several times? may need discussion
+            a = 9.8/2;
+            choice = 1;
+        }
+        if(skipButton.Pressed(x,y,1)==1)
+        {
+            // user has bought no powerups - no modification to values needed
+            // do nothing
             choice = 1;
         }
     }
+}
+
+void gameVals::SetAngle() // prompt the user to set the launch angle for the projectile
+{
+    LCD.Clear();
+    // prompt user to set the initial angle
+    LCD.WriteLine("Choose an initial launch angle:");
+
+    // create buttons for each of the angles used - 30/45/60/90
+    Icon thirtyButton, fortyfiveButton, sixtyButton, ninetyButton;
+    thirtyButton.SetProperties("30 degrees", 40, 26, 240, 26, WHITE, RED);
+    fortyfiveButton.SetProperties("45 degrees", 40, 78, 240, 26, WHITE, RED);
+    sixtyButton.SetProperties("60 degrees", 40, 130, 240, 26, WHITE, RED);
+    ninetyButton.SetProperties("90 degrees", 40, 182, 240, 26, WHITE, RED);
+    thirtyButton.Draw();
+    fortyfiveButton.Draw();
+    sixtyButton.Draw();
+    ninetyButton.Draw();
+    LCD.Update();
+    // define extra variables for the while loop
+    int choice = -1; // checks if the user has clicked a button
+    int x, y;
+    int xtrash, ytrash; // throwaway values
+    // check if the user has clicked, then check if the user clicked an angle button - fix x/y velocities by trigonometry
+    while(choice < 0)
+    {
+        while(!LCD.Touch(&x,&y)){};
+        while(LCD.Touch(&xtrash,&ytrash)){};
+        if(thirtyButton.Pressed(x,y,1)==1)
+        {
+            // vx = v*cos(30), vy = v*sin(30) - just remember we can't use functions, so check what the values are
+            choice = 1;
+        }
+        if(fortyfiveButton.Pressed(x,y,1)==1)
+        {
+            // vx = v*cos(45), vy = v*sin(45) - both sin/cos of 45 are the same so this one should be easy
+            choice = 1;
+        }
+        if(sixtyButton.Pressed(x,y,1)==1)
+        {
+            // vx = v*cos(60), vy = v*sin(60) - just reversing sines/cosines of 30
+            choice = 1;
+        }
+        if(ninetyButton.Pressed(x,y,1)==1)
+        {
+            // vx = v*cos(90), vy = v*sin(90) - vx will be zero, vy will be the full initial velocity
+            choice = 1;
+        }
+    }
+
 }
 
 void gameVals::UpdatePosition() // accepts the current position/velocity/total arclength, updates the values based on the change in time between frames
