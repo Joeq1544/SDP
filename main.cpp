@@ -169,10 +169,10 @@ void drawMenu()
 
 void displayGame() // runs the game itself
 {
-    Player player(0,0, 10, -5, 30, 180);
+    Player player(0,0, 10, -10, 30, 180);
     player.startAnim();
     vector<Obstacle> obs;
-    while(player.getY()>0)
+    while(player.getY()<0)
     {
         double rand = std::rand()/(double)(RAND_MAX);
         if(rand < (10-obs.size())/40.0)
@@ -460,10 +460,11 @@ void Player :: startAnim()
 {
     while(screenXPos < 160 && screenYPos > 120)
     {
-        screenXPos += 3 * 1.0;
-        xPos += xVel * 1.0;
-        screenYPos -= 2 * 1.0;
-        yPos -= yVel * 1.0;
+        screenXPos += xVel * 1.0/5;
+        xPos += xVel * 1.0/5;
+        screenYPos += yVel * 1.0/5;
+        yPos += yVel * 1.0/5;
+        yVel += acceleration * 1.0/100;
         clearScreen();
         draw();
         LCD.Update();
