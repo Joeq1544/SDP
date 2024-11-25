@@ -14,35 +14,15 @@ using namespace std;
 //
 //FUNCTIONS DECLARATIONS NOT ATTACHED TO A CLASS
 //
-void drawMenu();
-void displayGame();
-void runGame();
-void displayStats();
-void displayInstructions();
-void displayCredits();
-void returnToMainMenu();
 void clearScreen();
 
 //
 //CLASSES
 //
-class gameVals
-{
-    private:
-    int xPosition, yPosition; // current position of projectile
-    float xVelocity, yVelocity; // behind the scenes velocity stuff
-    float a = 9.8; // accelaration due to gravity
-    float arcLength = 0, pointsTot = 0; // arc length for each run and total points collected
-    public:
-    void SetUpgrades(); // code mostly completed, may need discussion over small behind the scenes things
-    void SetAngle(); // buttons dealt with, left x/y velocity calculations up to you like you said
-    void UpdatePosition(); // code completed
-    void EndScreen(); // code completed
-};
 
 class Projectile
 {
-    public:
+    protected:
         float screenXPos;
         float screenYPos;
         
@@ -70,18 +50,45 @@ class Player : public Projectile
         float yVel;
         float acceleration = 1;
     public:
+        Player() : Projectile(){};
         Player(float xPos, float yPos, float xVel, float yVel, float screenXPos, float screenYPos) : Projectile(screenXPos, screenYPos){
             this->xPos = xPos;
             this->yPos = yPos;
             this->xVel = xVel;
             this->yVel = yVel;
         };
+        void init(float xPos, float yPos, float xVel, float yVel, float screenXPos, float screenYPos);
         void startAnim();
         void updatePos(float deltaTime);
-        void endAnim();
+        void endAnim(vector<Obstacle> obs);
         float getXVelocity();
         float getYVelocity();
         float getY();
+        void multiplyAccel(float);
+        void multiplyXVel(float);
+        void multiplyYVel(float);
+};
+
+class gameState
+{
+    private:
+        Player player;
+        int launches;
+        float arcLength, pointsTot; // arc length for each run and total points collected
+    public:
+        gameState(int launches, float arcLength, float pointsTot);
+        void initPlayer(float xPos, float yPos, float xVel, float yVel, float screenXPos, float screenYPos);
+        void drawMenu();
+        void displayGame();
+        void runGame();
+        void displayStats();
+        void displayInstructions();
+        void displayCredits();
+        void returnToMainMenu();
+        void SetUpgrades(); // code mostly completed, may need discussion over small behind the scenes things
+        void SetAngle(); // buttons dealt with, left x/y velocity calculations up to you like you said
+        void UpdatePosition(); // code completed
+        void EndScreen(); // code completed
 };
 
 //
@@ -93,7 +100,9 @@ int main() {
     while (running)
     {
         LCD.Update();
-        drawMenu();
+        gameState game(0,0,0);
+        game.initPlayer(0,0,10,-10,20,20);
+        game.drawMenu();
         running = false;
     }
     while(1)
@@ -113,7 +122,23 @@ void clearScreen()
     LCD.DrawRectangle(0,0,319,239);
 }
 
-void drawMenu()
+//
+//FUNCTION DEFINITIONS TIED TO A CLASS
+//
+
+gameState :: gameState(int launches, float arclength, float pointsTot)
+{
+    this->launches = launches;
+    this->arcLength = arcLength;
+    this->pointsTot = pointsTot;
+}
+
+void gameState :: initPlayer(float xPos, float yPos, float xVel, float yVel, float screenXPos, float screenYPos)
+{
+    player.init(xPos, yPos, xVel, yVel, screenXPos, screenYPos);
+}
+
+void gameState :: drawMenu()
 {
     // set standard values for menu
     LCD.SetBackgroundColor(BLACK);
@@ -129,7 +154,7 @@ void drawMenu()
     instructionButton.SetProperties("Instructions", 40, 130, 240, 26, WHITE, RED);
     creditButton.SetProperties("Credits", 40, 182, 240, 26, WHITE, RED);
     // draw values to the screen
-    LCD.WriteLine("Learn to Fly"); // display the game title
+    LCD.WriteLine("Learn to Fly 4"); // display the game title
     gameButton.Draw();
     statButton.Draw();
     instructionButton.Draw();
@@ -167,9 +192,16 @@ void drawMenu()
     }
 }
 
-void displayGame() // runs the game itself
+void gameState :: displayGame() // runs the game itself
 {
-    Player player(0,0, 10, -10, 30, 180);
+
+    //SetUpgrades();
+    runGame();
+    returnToMainMenu();
+}
+
+void gameState :: runGame()
+{
     player.startAnim();
     vector<Obstacle> obs;
     while(player.getY()<0)
@@ -205,15 +237,10 @@ void displayGame() // runs the game itself
         }
         LCD.Update();
     }
-    player.endAnim();
-
-    gameVals runGame; // class for running the game itself
-    runGame.SetUpgrades();
-    
-    returnToMainMenu();
+    player.endAnim(obs);
 }
 
-void displayStats() // statistics menu
+void gameState :: displayStats() // statistics menu
 {
     LCD.Clear();
     // display stats - total distance of arc length, maximum arc length, and total launches played
@@ -224,7 +251,7 @@ void displayStats() // statistics menu
     returnToMainMenu();
 }
 
-void displayInstructions() // instructions menu
+void gameState :: displayInstructions() // instructions menu
 {
     LCD.Clear();
     // have issues with text looping - must set text in different lines to work around
@@ -238,7 +265,7 @@ void displayInstructions() // instructions menu
     returnToMainMenu();
 }
 
-void displayCredits() // credits menu
+void gameState :: displayCredits() // credits menu
 {
     LCD.Clear();
     LCD.WriteLine("Avery Taylor");
@@ -248,7 +275,7 @@ void displayCredits() // credits menu
     returnToMainMenu();
 }
 
-void returnToMainMenu()
+void gameState :: returnToMainMenu()
 {
     Icon menuButton;
     menuButton.SetProperties("Return to Menu", 40, 182, 240, 26, WHITE, RED);
@@ -272,10 +299,6 @@ void returnToMainMenu()
     }
 }
 
-//
-//FUNCTION DEFINITIONS TIED TO A CLASS
-//
-
 // -- definitions for functions used in game itself: --
 
 // put your function definitions for the game here for ease of access
@@ -283,7 +306,7 @@ void returnToMainMenu()
 // a lot of the specific ones (angle, launch, position/screen, collision, etc) will require pointers to permanently modify the values!
 // need more formal discussion on the specific logistics of the game to figure out most of this
 
-void gameVals::SetUpgrades() // prompt the user to either purchase a power-up or continue to game
+void gameState::SetUpgrades() // prompt the user to either purchase a power-up or continue to game
 {
     // display points/options to screen
     LCD.Clear();
@@ -293,7 +316,7 @@ void gameVals::SetUpgrades() // prompt the user to either purchase a power-up or
 
     // make buttons for each powerup available, display to screen
     Icon speedButton, gliderButton, skipButton;
-    speedButton.SetProperties("Double initial speed", 40, 182, 240, 26, WHITE, RED);
+    speedButton.SetProperties("Double initial speed", 40, 78, 240, 26, WHITE, RED);
     speedButton.Draw();
     gliderButton.SetProperties("Low gravity", 40, 130, 240, 26, WHITE, RED);
     gliderButton.Draw();
@@ -314,14 +337,14 @@ void gameVals::SetUpgrades() // prompt the user to either purchase a power-up or
         if(speedButton.Pressed(x,y,1)==1)
         {
             // doubles the initial velocity - powerup can increase several times? need to discuss maybe
-            xVelocity*=2;
-            yVelocity*=2;
+            player.multiplyXVel(2);
+            player.multiplyYVel(2);
             choice = 1;
         }
         if(gliderButton.Pressed(x,y,1)==1)
         {
             // sets gravity to half of standard value - one time purchase or can increase several times? may need discussion
-            a = 9.8/2;
+            player.multiplyAccel(.5);
             choice = 1;
         }
         if(skipButton.Pressed(x,y,1)==1)
@@ -333,7 +356,7 @@ void gameVals::SetUpgrades() // prompt the user to either purchase a power-up or
     }
 }
 
-void gameVals::SetAngle() // prompt the user to set the launch angle for the projectile
+void gameState::SetAngle() // prompt the user to set the launch angle for the projectile
 {
     LCD.Clear();
     // prompt user to set the initial angle
@@ -383,27 +406,14 @@ void gameVals::SetAngle() // prompt the user to set the launch angle for the pro
 
 }
 
-void gameVals::UpdatePosition() // accepts the current position/velocity/total arclength, updates the values based on the change in time between frames
+void gameState::UpdatePosition() // accepts the current position/velocity/total arclength, updates the values based on the change in time between frames
 {
-    // accelatarion is 9.8 m/s^2
-    // assuming each pixel is a meter?
-    // assuming 30fps
-    float t = 1.0/30; // need to figure out how many seconds between frames!!!!
-
-    // equations used based on kinematic equations - xf = xi + vt, vf = vi + at
-    // calculate change in position
-    xPosition+=(xVelocity*t);
-    yPosition+=(yVelocity*t);
-
-    // calculate the change in the vertical velocity due to gravity
-    yVelocity+=(a*t);
-
     // calculate change in arclength, add to total arc length
-    arcLength+=pow((pow(xPosition, 2))+(pow(yPosition, 2)), 0.5); // displacement equation
+    arcLength+=pow((pow(player.getXVelocity(), 2))+(pow(player.getYVelocity(), 2)), 0.5); // displacement equation
 
 }
 
-void gameVals::EndScreen() // displays the final results of the game, accepting the arclength value of that run and current point value
+void gameState::EndScreen() // displays the final results of the game, accepting the arclength value of that run and current point value
 // don't need pointers since none of the values need to be modified
 {
     using namespace FEHIcon; // for the button inputs
@@ -456,6 +466,16 @@ void Projectile :: draw()
     LCD.DrawCircle(screenXPos, screenYPos, 10);
 }
 
+void Player :: init(float xPos, float yPos, float xVel, float yVel, float screenXPos, float screenYPos)
+{
+    this->xPos = xPos;
+    this->yPos = yPos;
+    this->xVel = xVel;
+    this->yVel = yVel;
+    this->screenXPos = screenXPos;
+    this->screenYPos = screenYPos;
+}
+
 void Player :: startAnim()
 {
     while(screenXPos < 160 && screenYPos > 120)
@@ -464,25 +484,46 @@ void Player :: startAnim()
         xPos += xVel * 1.0/5;
         screenYPos += yVel * 1.0/5;
         yPos += yVel * 1.0/5;
-        yVel += acceleration * 1.0/100;
+        yVel += acceleration * 1.0/50;
         clearScreen();
         draw();
+        LCD.DrawHorizontalLine(230, 0, 319);
         LCD.Update();
     }
 }
 
 void Player :: updatePos(float deltaTime)
 {
-    xPos += xVel * deltaTime;
-    yPos += yVel * deltaTime;
-    yVel += acceleration * deltaTime;
+    xPos += xVel * 1.0/5;
+    yPos += yVel * 1.0/5;
+    yVel += acceleration * 1.0/50;
     LCD.WriteLine(xVel);
     LCD.WriteLine(yVel);
 }
 
-void Player :: endAnim()
+void Player :: endAnim(vector<Obstacle> obs)
 {
-
+    float floorPos = 239;
+    while(screenXPos < 300 && screenYPos < floorPos - 10)
+    {
+        screenXPos += xVel * 1.0/5;
+        xPos += xVel * 1.0/5;
+        screenYPos += yVel * 1.0/5;
+        yPos += yVel * 1.0/5;
+        yVel += acceleration * 1.0/50;
+        clearScreen();
+        draw();
+        floorPos -= yVel * 1.0/5;
+        floorPos = min((int)floorPos, 230);
+        LCD.DrawHorizontalLine(floorPos, 0, 319);
+        obs.erase(remove_if(obs.begin(),obs.end(),[&](Obstacle& ob) {return ob.updateScreenPos(getXVelocity(), getYVelocity(), deltaFrameTime) == true;}), obs.end());
+        for (int i = 0; i < obs.size(); i++)
+        {
+            obs.at(i).draw();
+            //cout << i <<" - "<< obs.at(i).screenXPos<<" - "<<obs.at(i).screenYPos<<"\n";
+        }
+        LCD.Update();
+    }
 }
 
 float Player :: getXVelocity()
@@ -498,6 +539,21 @@ float Player :: getYVelocity()
 float Player :: getY()
 {
     return yPos;
+}
+
+void Player :: multiplyAccel(float coef)
+{
+    acceleration *= coef;
+}
+
+void Player :: multiplyXVel(float coef)
+{
+    xVel *= coef;
+}
+
+void Player :: multiplyYVel(float coef)
+{
+    yVel *= coef;
 }
 
 Obstacle :: Obstacle(float screenXPos, float screenYPos)
