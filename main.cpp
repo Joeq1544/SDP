@@ -2,7 +2,14 @@
 #include "FEHUtility.h"
 #include <FEHRandom.h>
 #include <math.h>
+#include <vector>
+#include <algorithm>
+#include <iostream>
 using namespace FEHIcon;
+using namespace std;
+
+//CONSTANTS
+#define deltaFrameTime 1/10.0
 
 //
 //FUNCTIONS DECLARATIONS NOT ATTACHED TO A CLASS
@@ -35,7 +42,7 @@ class gameVals
 
 class Projectile
 {
-    protected:
+    public:
         float screenXPos;
         float screenYPos;
         
@@ -49,9 +56,9 @@ class Obstacle : public Projectile
 {
     public:
         Obstacle(){};
+        Obstacle(float screenXPos, float ScreenYPos);
         void setVals(float screenXPos, float screenYPos);
-        void updateScreenPos(float xVel, float yVel);
-        
+        bool updateScreenPos(float xVel, float yVel, float deltaTime); 
 };
 
 class Player : public Projectile
@@ -61,7 +68,7 @@ class Player : public Projectile
         float yPos;
         float xVel;
         float yVel;
-        float acceleration = -1;
+        float acceleration = 1;
     public:
         Player(float xPos, float yPos, float xVel, float yVel, float screenXPos, float screenYPos) : Projectile(screenXPos, screenYPos){
             this->xPos = xPos;
@@ -74,6 +81,7 @@ class Player : public Projectile
         void endAnim();
         float getXVelocity();
         float getYVelocity();
+        float getY();
 };
 
 //
@@ -161,18 +169,43 @@ void drawMenu()
 
 void displayGame() // runs the game itself
 {
-    Player player(0,0, 3, -5, 30, 180);
+    Player player(0,0, 10, -5, 30, 180);
     player.startAnim();
-    Obstacle obs[10];
-    int numObs = 0;
-    while(true)
+    vector<Obstacle> obs;
+    while(player.getY()>0)
     {
         double rand = std::rand()/(double)(RAND_MAX);
+        if(rand < (10-obs.size())/40.0)
+        {
+            //cout << obs.size() << "\n";
+            if(std::rand()/(double)(RAND_MAX)<.5)
+            {
+                if(player.getYVelocity()<0)
+                {
+                    obs.emplace_back(std::rand()/(double)(RAND_MAX)*250+40,std::rand()/(double)(RAND_MAX)*10+10);
+                }
+                else
+                {
+                    obs.emplace_back(std::rand()/(double)(RAND_MAX)*250+40,std::rand()/(double)(RAND_MAX)*5+220);
+                }
+            }
+            else
+            {
+                obs.emplace_back(std::rand()/(double)(RAND_MAX)*10+300,std::rand()/(double)(RAND_MAX)*220+10);
+            }
+        }
         clearScreen();
         player.updatePos(1.0/10);
         player.draw();
+        obs.erase(remove_if(obs.begin(),obs.end(),[&](Obstacle& ob) {return ob.updateScreenPos(player.getXVelocity(), player.getYVelocity(), deltaFrameTime) == true;}), obs.end());
+        for (int i = 0; i < obs.size(); i++)
+        {
+            obs.at(i).draw();
+            //cout << i <<" - "<< obs.at(i).screenXPos<<" - "<<obs.at(i).screenYPos<<"\n";
+        }
         LCD.Update();
     }
+    player.endAnim();
 
     gameVals runGame; // class for running the game itself
     runGame.SetUpgrades();
@@ -428,9 +461,9 @@ void Player :: startAnim()
     while(screenXPos < 160 && screenYPos > 120)
     {
         screenXPos += 3 * 1.0;
-        xPos += 3 * 1.0/10;
+        xPos += xVel * 1.0;
         screenYPos -= 2 * 1.0;
-        yPos -= 2 * 1.0;
+        yPos -= yVel * 1.0;
         clearScreen();
         draw();
         LCD.Update();
@@ -442,8 +475,8 @@ void Player :: updatePos(float deltaTime)
     xPos += xVel * deltaTime;
     yPos += yVel * deltaTime;
     yVel += acceleration * deltaTime;
-    LCD.WriteLine(xPos);
-    LCD.WriteLine(yPos);
+    LCD.WriteLine(xVel);
+    LCD.WriteLine(yVel);
 }
 
 void Player :: endAnim()
@@ -461,14 +494,32 @@ float Player :: getYVelocity()
     return yVel;
 }
 
+float Player :: getY()
+{
+    return yPos;
+}
+
+Obstacle :: Obstacle(float screenXPos, float screenYPos)
+{
+    this->screenXPos = screenXPos;
+    this->screenYPos = screenYPos;
+}
 void Obstacle :: setVals(float screenXPos, float screenYPos)
 {
     this->screenXPos = screenXPos;
     this->screenYPos = screenYPos;
 }
 
-void Obstacle :: updateScreenPos(float xVel, float yVel)
+bool Obstacle :: updateScreenPos(float xVel, float yVel, float deltaTime)
 {
-    screenXPos += xVel;
-    screenYPos += yVel;
+    screenXPos -= xVel * deltaTime;
+    screenYPos -= yVel * deltaTime;
+    // LCD.WriteAt(screenXPos,screenXPos,screenYPos);
+    // LCD.WriteAt(screenYPos,screenXPos,screenYPos+10);
+    if(screenXPos < 15 || screenYPos > 225 || screenXPos > 320 || screenYPos < 0)
+    {
+        cout << "remove\n";
+        return true;
+    }
+    return false;
 }
