@@ -73,7 +73,7 @@ class gameState
 {
     private:
         Player player;
-        int launches;
+        int launches; // total number of times played during code running
         float arcLength, pointsTot; // arc length for each run and total points collected
     public:
         gameState(int launches, float arcLength, float pointsTot);
@@ -85,7 +85,7 @@ class gameState
         void displayInstructions();
         void displayCredits();
         void returnToMainMenu();
-        void SetUpgrades(); // code mostly completed, may need discussion over small behind the scenes things
+        void SetUpgrades(); // code mostly completed
         void SetAngle(); // buttons dealt with, left x/y velocity calculations up to you like you said
         void UpdatePosition(); // code completed
         void EndScreen(); // code completed
@@ -244,10 +244,13 @@ void gameState :: displayStats() // statistics menu
 {
     LCD.Clear();
     // display stats - total distance of arc length, maximum arc length, and total launches played
-    LCD.WriteLine("Total Distance: 0 meters.");
-    LCD.WriteLine("Max Distance: 0 Meters.");
-    LCD.WriteLine("Launches: 0");
-
+    LCD.WriteLine("Previous Distance(m): ");
+    LCD.WriteLine(arcLength);
+    LCD.WriteLine("Max Distance(m): ");
+    LCD.WriteLine(pointsTot);
+    LCD.WriteLine("Launches: ");
+    LCD.WriteLine(launches);
+    // prompt user to return to main menu
     returnToMainMenu();
 }
 
@@ -261,7 +264,7 @@ void gameState :: displayInstructions() // instructions menu
     LCD.WriteLine("Collect points from");
     LCD.WriteLine("distance traveled. Buy");
     LCD.WriteLine("upgrades with your points and keep playing!");
-
+    // prompt user to return to main menu
     returnToMainMenu();
 }
 
@@ -271,12 +274,13 @@ void gameState :: displayCredits() // credits menu
     LCD.WriteLine("Avery Taylor");
     LCD.WriteLine("Joe Quinn");
     LCD.WriteLine("Inspired by Learn to Fly");
-
+    // prompt user to return to main menu
     returnToMainMenu();
 }
 
 void gameState :: returnToMainMenu()
 {
+    // create the button to return to main menu
     Icon menuButton;
     menuButton.SetProperties("Return to Menu", 40, 182, 240, 26, WHITE, RED);
     menuButton.Draw();
@@ -343,8 +347,8 @@ void gameState::SetUpgrades() // prompt the user to either purchase a power-up o
         }
         if(gliderButton.Pressed(x,y,1)==1)
         {
-            // sets gravity to half of standard value - one time purchase or can increase several times? may need discussion
-            player.multiplyAccel(.5);
+            // decrease gravity by 25% - can increase several times?
+            player.multiplyAccel(.75);
             choice = 1;
         }
         if(skipButton.Pressed(x,y,1)==1)
@@ -368,6 +372,7 @@ void gameState::SetAngle() // prompt the user to set the launch angle for the pr
     fortyfiveButton.SetProperties("45 degrees", 40, 78, 240, 26, WHITE, RED);
     sixtyButton.SetProperties("60 degrees", 40, 130, 240, 26, WHITE, RED);
     ninetyButton.SetProperties("90 degrees", 40, 182, 240, 26, WHITE, RED);
+    // draw the buttons
     thirtyButton.Draw();
     fortyfiveButton.Draw();
     sixtyButton.Draw();
@@ -416,6 +421,9 @@ void gameState::UpdatePosition() // accepts the current position/velocity/total 
 void gameState::EndScreen() // displays the final results of the game, accepting the arclength value of that run and current point value
 // don't need pointers since none of the values need to be modified
 {
+    // increase total launches for stats screen, increase total points by given arclength
+    launches++;
+    pointsTot+=arcLength;
     using namespace FEHIcon; // for the button inputs
     LCD.Clear();
     // tell the user how many points they've earned/how far they went and their current point total
