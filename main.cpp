@@ -73,10 +73,11 @@ class gameState
 {
     private:
         Player player;
+        float startingVelocity;
         int launches; // total number of times played during code running
         float arcLength, pointsTot; // arc length for each run and total points collected
     public:
-        gameState(int launches, float arcLength, float pointsTot);
+        gameState(int launches, float arcLength, float pointsTot, float startingVelocity);
         void initPlayer(float xPos, float yPos, float xVel, float yVel, float screenXPos, float screenYPos);
         void drawMenu();
         void displayGame();
@@ -100,8 +101,7 @@ int main() {
     while (running)
     {
         LCD.Update();
-        gameState game(0,0,0);
-        game.initPlayer(0,0,10,-10,20,20);
+        gameState game(0,0,0, 10);
         game.drawMenu();
         running = false;
     }
@@ -126,11 +126,12 @@ void clearScreen()
 //FUNCTION DEFINITIONS TIED TO A CLASS
 //
 
-gameState :: gameState(int launches, float arclength, float pointsTot)
+gameState :: gameState(int launches, float arclength, float pointsTot, float startingVelocity)
 {
     this->launches = launches;
     this->arcLength = arcLength;
     this->pointsTot = pointsTot;
+    this->startingVelocity = startingVelocity;
 }
 
 void gameState :: initPlayer(float xPos, float yPos, float xVel, float yVel, float screenXPos, float screenYPos)
@@ -194,10 +195,11 @@ void gameState :: drawMenu()
 
 void gameState :: displayGame() // runs the game itself
 {
-
-    //SetUpgrades();
+    initPlayer(0,0,0,0,20,220);
+    SetUpgrades();
+    SetAngle();
     runGame();
-    returnToMainMenu();
+    EndScreen();
 }
 
 void gameState :: runGame()
@@ -228,6 +230,7 @@ void gameState :: runGame()
         }
         clearScreen();
         player.updatePos(1.0/10);
+        UpdatePosition();
         player.draw();
         obs.erase(remove_if(obs.begin(),obs.end(),[&](Obstacle& ob) {return ob.updateScreenPos(player.getXVelocity(), player.getYVelocity(), deltaFrameTime) == true;}), obs.end());
         for (int i = 0; i < obs.size(); i++)
@@ -341,8 +344,7 @@ void gameState::SetUpgrades() // prompt the user to either purchase a power-up o
         if(speedButton.Pressed(x,y,1)==1)
         {
             // doubles the initial velocity - powerup can increase several times? need to discuss maybe
-            player.multiplyXVel(2);
-            player.multiplyYVel(2);
+            startingVelocity *= 2;
             choice = 1;
         }
         if(gliderButton.Pressed(x,y,1)==1)
@@ -390,21 +392,25 @@ void gameState::SetAngle() // prompt the user to set the launch angle for the pr
         if(thirtyButton.Pressed(x,y,1)==1)
         {
             // vx = v*cos(30), vy = v*sin(30) - just remember we can't use functions, so check what the values are
+            player.init(0,0,startingVelocity*cos(30),startingVelocity*sin(30),20,220);
             choice = 1;
         }
         if(fortyfiveButton.Pressed(x,y,1)==1)
         {
             // vx = v*cos(45), vy = v*sin(45) - both sin/cos of 45 are the same so this one should be easy
+            player.init(0,0,startingVelocity*cos(45),-startingVelocity*sin(45),20,220);
             choice = 1;
         }
         if(sixtyButton.Pressed(x,y,1)==1)
         {
             // vx = v*cos(60), vy = v*sin(60) - just reversing sines/cosines of 30
+            player.init(0,0,-startingVelocity*cos(60),startingVelocity*sin(60),20,220);
             choice = 1;
         }
         if(ninetyButton.Pressed(x,y,1)==1)
         {
             // vx = v*cos(90), vy = v*sin(90) - vx will be zero, vy will be the full initial velocity
+            player.init(0,0,startingVelocity*cos(90),-startingVelocity*sin(90),20,220);
             choice = 1;
         }
     }
@@ -424,13 +430,13 @@ void gameState::EndScreen() // displays the final results of the game, accepting
     // increase total launches for stats screen, increase total points by given arclength
     launches++;
     pointsTot+=arcLength;
-    using namespace FEHIcon; // for the button inputs
     LCD.Clear();
     // tell the user how many points they've earned/how far they went and their current point total
     LCD.Write("Distance Traveled: ");
     LCD.WriteLine(arcLength);
     LCD.Write("Total Points: ");
     LCD.WriteLine(pointsTot);
+    arcLength = 0;
 
     // prompt the user to either play again or return to menu
     Icon menuButton, resetButton;
@@ -486,6 +492,8 @@ void Player :: init(float xPos, float yPos, float xVel, float yVel, float screen
 
 void Player :: startAnim()
 {
+    cout << "startAnim "<< xVel <<" " <<yVel<<" \n";
+    
     while(screenXPos < 160 && screenYPos > 120)
     {
         screenXPos += xVel * 1.0/5;
@@ -502,6 +510,7 @@ void Player :: startAnim()
 
 void Player :: updatePos(float deltaTime)
 {
+    cout << "player pos updated\n";
     xPos += xVel * 1.0/5;
     yPos += yVel * 1.0/5;
     yVel += acceleration * 1.0/50;
@@ -511,6 +520,7 @@ void Player :: updatePos(float deltaTime)
 
 void Player :: endAnim(vector<Obstacle> obs)
 {
+    cout << "end anim\n";
     float floorPos = 239;
     while(screenXPos < 300 && screenYPos < floorPos - 10)
     {
@@ -579,11 +589,8 @@ bool Obstacle :: updateScreenPos(float xVel, float yVel, float deltaTime)
 {
     screenXPos -= xVel * deltaTime;
     screenYPos -= yVel * deltaTime;
-    // LCD.WriteAt(screenXPos,screenXPos,screenYPos);
-    // LCD.WriteAt(screenYPos,screenXPos,screenYPos+10);
     if(screenXPos < 15 || screenYPos > 225 || screenXPos > 320 || screenYPos < 0)
     {
-        cout << "remove\n";
         return true;
     }
     return false;
