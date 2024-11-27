@@ -9,7 +9,9 @@ using namespace FEHIcon;
 using namespace std;
 
 //CONSTANTS
-#define deltaFrameTime 1/10.0
+#define deltaFrameTime 1/5.0
+#define playerMass 10
+#define obMass 1
 
 //
 //FUNCTIONS DECLARATIONS NOT ATTACHED TO A CLASS
@@ -20,25 +22,39 @@ void clearScreen();
 //CLASSES
 //
 
+class Player;
+
 class Projectile
 {
-    protected:
+    public:
         float screenXPos;
         float screenYPos;
-        
+        float xVel;
+        float yVel;
+        float acceleration = 1;
+        float mass;
     public:
         Projectile(){};
-        Projectile(float screenXPos, float screenYPos);
+        Projectile(float screenXPos, float screenYPos, float xVel, float yVel, float mass);
         void draw();
 };
 
 class Obstacle : public Projectile
 {
+    private:
+        bool hasCollided = false;
     public:
         Obstacle(){};
-        Obstacle(float screenXPos, float ScreenYPos);
-        void setVals(float screenXPos, float screenYPos);
-        bool updateScreenPos(float xVel, float yVel, float deltaTime); 
+        Obstacle(float screenXPos, float screenYPos, float xVel, float yVel, float mass) : Projectile(screenXPos, screenYPos, xVel, yVel, mass)
+        {
+            // this->screenXPos = screenXPos;
+            // this->screenYPos = screenYPos;
+            // this->xVel = xVel;
+            // this->yVel = yVel;
+        };
+        bool updateScreenPos(float pXVel, float PYVel); 
+        void collide(Player *player);
+        friend class Player;
 };
 
 class Player : public Projectile
@@ -46,18 +62,13 @@ class Player : public Projectile
     protected:
         float xPos;
         float yPos;
-        float xVel;
-        float yVel;
-        float acceleration = 1;
     public:
         Player() : Projectile(){};
-        Player(float xPos, float yPos, float xVel, float yVel, float screenXPos, float screenYPos) : Projectile(screenXPos, screenYPos){
+        Player(float xPos, float yPos, float xVel, float yVel, float screenXPos, float screenYPos, float mass) : Projectile(screenXPos, screenYPos, xVel, yVel, mass){
             this->xPos = xPos;
             this->yPos = yPos;
-            this->xVel = xVel;
-            this->yVel = yVel;
         };
-        void init(float xPos, float yPos, float xVel, float yVel, float screenXPos, float screenYPos);
+        void init(float xPos, float yPos, float xVel, float yVel, float screenXPos, float screenYPos, float mass);
         void startAnim();
         void updatePos(float deltaTime);
         void endAnim(vector<Obstacle> obs);
@@ -65,8 +76,8 @@ class Player : public Projectile
         float getYVelocity();
         float getY();
         void multiplyAccel(float);
-        void multiplyXVel(float);
-        void multiplyYVel(float);
+        void setXVel(float xVel);
+        void setYVel(float yVel);
 };
 
 class gameState
@@ -75,10 +86,14 @@ class gameState
         Player player;
         float startingVelocity;
         int launches; // total number of times played during code running
-        float arcLength, pointsTot; // arc length for each run and total points collected
+        float arcLength = 0;
+        float pointsTot = 0;
+        float previousDistance = 0;
+        float maxDistance = 0;
+        float maxHeight = 0; // arc length for each run and total points collected
     public:
-        gameState(int launches, float arcLength, float pointsTot, float startingVelocity);
-        void initPlayer(float xPos, float yPos, float xVel, float yVel, float screenXPos, float screenYPos);
+        gameState(int launches, float arcLength, float pointsTot, float startingVelocity, float previousDistance, float maxDistance, float maxHeight);
+        void initPlayer(float xPos, float yPos, float xVel, float yVel, float screenXPos, float screenYPos, float mass);
         void drawMenu();
         void displayGame();
         void runGame();
@@ -100,13 +115,15 @@ int main() {
     bool running = true;
     while (running)
     {
+        // @ts-ignore
         LCD.Update();
-        gameState game(0,0,0, 10);
+        gameState game(0,0,0,10,0,0,0);
         game.drawMenu();
         running = false;
     }
     while(1)
     {
+        // @ts-ignore
         LCD.Update();
     }
     return 0;
@@ -126,17 +143,20 @@ void clearScreen()
 //FUNCTION DEFINITIONS TIED TO A CLASS
 //
 
-gameState :: gameState(int launches, float arclength, float pointsTot, float startingVelocity)
+gameState :: gameState(int launches, float arclength, float pointsTot, float startingVelocity, float maxDistance, float maxHeight, float previousDistance)
 {
     this->launches = launches;
     this->arcLength = arcLength;
     this->pointsTot = pointsTot;
     this->startingVelocity = startingVelocity;
+    this->maxDistance = maxDistance;
+    this->maxHeight = maxHeight;
+    this->previousDistance = previousDistance;
 }
 
-void gameState :: initPlayer(float xPos, float yPos, float xVel, float yVel, float screenXPos, float screenYPos)
+void gameState :: initPlayer(float xPos, float yPos, float xVel, float yVel, float screenXPos, float screenYPos, float mass)
 {
-    player.init(xPos, yPos, xVel, yVel, screenXPos, screenYPos);
+    player.init(xPos, yPos, xVel, yVel, screenXPos, screenYPos, mass);
 }
 
 void gameState :: drawMenu()
@@ -160,6 +180,7 @@ void gameState :: drawMenu()
     statButton.Draw();
     instructionButton.Draw();
     creditButton.Draw();
+    // @ts-ignore
     LCD.Update();
     // define extra variables for the while loop
     int choice = -1; // checks if the user has clicked a button
@@ -195,7 +216,7 @@ void gameState :: drawMenu()
 
 void gameState :: displayGame() // runs the game itself
 {
-    initPlayer(0,0,0,0,20,220);
+    initPlayer(0,0,0,0,20,220, playerMass);
     SetUpgrades();
     SetAngle();
     runGame();
@@ -204,55 +225,75 @@ void gameState :: displayGame() // runs the game itself
 
 void gameState :: runGame()
 {
+    float runHeight = 0;
     player.startAnim();
     vector<Obstacle> obs;
     while(player.getY()<0)
     {
+        if(player.yVel > 0 && runHeight ==0)
+        {
+            runHeight = -player.getY();
+        }
         double rand = std::rand()/(double)(RAND_MAX);
         if(rand < (10-obs.size())/40.0)
         {
-            //cout << obs.size() << "\n";
             if(std::rand()/(double)(RAND_MAX)<.5)
             {
                 if(player.getYVelocity()<0)
                 {
-                    obs.emplace_back(std::rand()/(double)(RAND_MAX)*250+40,std::rand()/(double)(RAND_MAX)*10+10);
+                    int x = std::rand()/(double)(RAND_MAX)*250+40;
+                    int y = std::rand()/(double)(RAND_MAX)*10+10;
+                    Obstacle temp(x,y,0, 0, obMass);
+                    obs.push_back(temp);
                 }
                 else
                 {
-                    obs.emplace_back(std::rand()/(double)(RAND_MAX)*250+40,std::rand()/(double)(RAND_MAX)*5+220);
+                    int x = std::rand()/(double)(RAND_MAX)*250+40;
+                    int y = std::rand()/(double)(RAND_MAX)*5+210;
+                    Obstacle temp(x,y,0, 0, obMass);
+                    obs.push_back(temp);
                 }
             }
             else
             {
-                obs.emplace_back(std::rand()/(double)(RAND_MAX)*10+300,std::rand()/(double)(RAND_MAX)*220+10);
+                int x = std::rand()/(double)(RAND_MAX)*10+300;
+                int y = std::rand()/(double)(RAND_MAX)*210+10;
+                Obstacle temp(x,y,0, 0, obMass);
+                obs.push_back(temp);
             }
         }
         clearScreen();
-        player.updatePos(1.0/10);
-        UpdatePosition();
-        player.draw();
-        obs.erase(remove_if(obs.begin(),obs.end(),[&](Obstacle& ob) {return ob.updateScreenPos(player.getXVelocity(), player.getYVelocity(), deltaFrameTime) == true;}), obs.end());
+        obs.erase(remove_if(obs.begin(),obs.end(),[&](Obstacle& ob) {return ob.updateScreenPos(player.xVel,player.yVel) == true;}), obs.end());
         for (int i = 0; i < obs.size(); i++)
         {
             obs.at(i).draw();
-            //cout << i <<" - "<< obs.at(i).screenXPos<<" - "<<obs.at(i).screenYPos<<"\n";
+            obs.at(i).collide(&player);
         }
+        player.updatePos(1.0/10);
+        UpdatePosition();
+        player.draw();
+        // @ts-ignore
         LCD.Update();
     }
     player.endAnim(obs);
+    maxHeight = max(runHeight,maxHeight);
+    maxDistance = max(arcLength, maxDistance);
 }
 
 void gameState :: displayStats() // statistics menu
 {
     LCD.Clear();
     // display stats - total distance of arc length, maximum arc length, and total launches played
-    LCD.WriteLine("Previous Distance(m): ");
-    LCD.WriteLine(arcLength);
-    LCD.WriteLine("Max Distance(m): ");
-    LCD.WriteLine(pointsTot);
     LCD.WriteLine("Launches: ");
     LCD.WriteLine(launches);
+    LCD.WriteLine("Previous Distance(m): ");
+    LCD.WriteLine(previousDistance);
+    LCD.WriteLine("Max Distance(m): ");
+    LCD.WriteLine(maxDistance);
+    LCD.WriteLine("Max Height(m): ");
+    LCD.WriteLine(maxHeight);
+    LCD.WriteLine("Total Distance(m): ");
+    LCD.WriteLine(pointsTot);
     // prompt user to return to main menu
     returnToMainMenu();
 }
@@ -287,6 +328,7 @@ void gameState :: returnToMainMenu()
     Icon menuButton;
     menuButton.SetProperties("Return to Menu", 40, 182, 240, 26, WHITE, RED);
     menuButton.Draw();
+    // @ts-ignore
     LCD.Update();
     // check if/when menu button is clicked
     // define extra variables for the while loop
@@ -323,12 +365,13 @@ void gameState::SetUpgrades() // prompt the user to either purchase a power-up o
 
     // make buttons for each powerup available, display to screen
     Icon speedButton, gliderButton, skipButton;
-    speedButton.SetProperties("Double initial speed", 40, 78, 240, 26, WHITE, RED);
+    speedButton.SetProperties("2x speed-5,000", 20, 78, 280, 26, WHITE, RED);
     speedButton.Draw();
-    gliderButton.SetProperties("Low gravity", 40, 130, 240, 26, WHITE, RED);
+    gliderButton.SetProperties("x0.75gravity-10,000", 20, 130, 280, 26, WHITE, RED);
     gliderButton.Draw();
-    skipButton.SetProperties("Skip Powerups", 40, 182, 240, 26, WHITE, RED);
+    skipButton.SetProperties("Skip Powerups", 20, 182, 280, 26, WHITE, RED);
     skipButton.Draw();
+    // @ts-ignore
     LCD.Update();
 
     // check if/when one of the buttons are clicked
@@ -344,14 +387,23 @@ void gameState::SetUpgrades() // prompt the user to either purchase a power-up o
         if(speedButton.Pressed(x,y,1)==1)
         {
             // doubles the initial velocity - powerup can increase several times? need to discuss maybe
-            startingVelocity *= 2;
-            choice = 1;
+            // check if user has enough points - if yes, run function/reduce points otherwise do nothing
+            if (pointsTot >=5000)
+            {
+                pointsTot-=5000;
+                startingVelocity *= 2;
+                choice = 1;
+            }
         }
         if(gliderButton.Pressed(x,y,1)==1)
         {
             // decrease gravity by 25% - can increase several times?
-            player.multiplyAccel(.75);
-            choice = 1;
+            if (pointsTot >= 10000)
+            {
+                pointsTot-=10000;
+                player.multiplyAccel(.75);
+                choice = 1;
+            }
         }
         if(skipButton.Pressed(x,y,1)==1)
         {
@@ -379,6 +431,7 @@ void gameState::SetAngle() // prompt the user to set the launch angle for the pr
     fortyfiveButton.Draw();
     sixtyButton.Draw();
     ninetyButton.Draw();
+    // @ts-ignore
     LCD.Update();
     // define extra variables for the while loop
     int choice = -1; // checks if the user has clicked a button
@@ -392,25 +445,25 @@ void gameState::SetAngle() // prompt the user to set the launch angle for the pr
         if(thirtyButton.Pressed(x,y,1)==1)
         {
             // vx = v*cos(30), vy = v*sin(30) - just remember we can't use functions, so check what the values are
-            player.init(0,0,startingVelocity*cos(30),startingVelocity*sin(30),20,220);
+            player.init(0,0,-startingVelocity*cos(60),startingVelocity*sin(60),20,220, playerMass);
             choice = 1;
         }
         if(fortyfiveButton.Pressed(x,y,1)==1)
         {
             // vx = v*cos(45), vy = v*sin(45) - both sin/cos of 45 are the same so this one should be easy
-            player.init(0,0,startingVelocity*cos(45),-startingVelocity*sin(45),20,220);
+            player.init(0,0,startingVelocity*cos(45),-startingVelocity*sin(45),20,220, playerMass);
             choice = 1;
         }
         if(sixtyButton.Pressed(x,y,1)==1)
         {
             // vx = v*cos(60), vy = v*sin(60) - just reversing sines/cosines of 30
-            player.init(0,0,-startingVelocity*cos(60),startingVelocity*sin(60),20,220);
+            player.init(0,0,startingVelocity*cos(30), startingVelocity*sin(30),20,220, playerMass);
             choice = 1;
         }
         if(ninetyButton.Pressed(x,y,1)==1)
         {
             // vx = v*cos(90), vy = v*sin(90) - vx will be zero, vy will be the full initial velocity
-            player.init(0,0,startingVelocity*cos(90),-startingVelocity*sin(90),20,220);
+            player.init(0,0,0,-startingVelocity,20,220, playerMass);
             choice = 1;
         }
     }
@@ -421,7 +474,6 @@ void gameState::UpdatePosition() // accepts the current position/velocity/total 
 {
     // calculate change in arclength, add to total arc length
     arcLength+=pow((pow(player.getXVelocity(), 2))+(pow(player.getYVelocity(), 2)), 0.5); // displacement equation
-
 }
 
 void gameState::EndScreen() // displays the final results of the game, accepting the arclength value of that run and current point value
@@ -430,6 +482,8 @@ void gameState::EndScreen() // displays the final results of the game, accepting
     // increase total launches for stats screen, increase total points by given arclength
     launches++;
     pointsTot+=arcLength;
+    cout << arcLength <<" al "<< pointsTot<<" pt\n";
+    previousDistance = arcLength;
     LCD.Clear();
     // tell the user how many points they've earned/how far they went and their current point total
     LCD.Write("Distance Traveled: ");
@@ -444,6 +498,7 @@ void gameState::EndScreen() // displays the final results of the game, accepting
     menuButton.Draw();
     resetButton.SetProperties("Play Again", 40, 130, 240, 26, WHITE, RED);
     resetButton.Draw();
+    // @ts-ignore
     LCD.Update();
 
     // check if/when one of the buttons are clicked
@@ -469,10 +524,13 @@ void gameState::EndScreen() // displays the final results of the game, accepting
     }
 }
 
-Projectile :: Projectile(float screenXPos, float screenYPos)
+Projectile :: Projectile(float screenXPos, float screenYPos, float xVel, float yVel, float mass)
 {
     this->screenXPos = screenXPos;
     this->screenYPos = screenYPos;
+    this->xVel = xVel;
+    this->yVel = yVel;
+    this->mass = mass;
 }
 
 void Projectile :: draw()
@@ -480,7 +538,7 @@ void Projectile :: draw()
     LCD.DrawCircle(screenXPos, screenYPos, 10);
 }
 
-void Player :: init(float xPos, float yPos, float xVel, float yVel, float screenXPos, float screenYPos)
+void Player :: init(float xPos, float yPos, float xVel, float yVel, float screenXPos, float screenYPos, float mass)
 {
     this->xPos = xPos;
     this->yPos = yPos;
@@ -488,58 +546,56 @@ void Player :: init(float xPos, float yPos, float xVel, float yVel, float screen
     this->yVel = yVel;
     this->screenXPos = screenXPos;
     this->screenYPos = screenYPos;
+    this->mass = mass;
 }
 
 void Player :: startAnim()
 {
-    cout << "startAnim "<< xVel <<" " <<yVel<<" \n";
-    
     while(screenXPos < 160 && screenYPos > 120)
     {
-        screenXPos += xVel * 1.0/5;
-        xPos += xVel * 1.0/5;
-        screenYPos += yVel * 1.0/5;
-        yPos += yVel * 1.0/5;
-        yVel += acceleration * 1.0/50;
+        screenXPos += xVel * deltaFrameTime;
+        xPos += xVel * deltaFrameTime;
+        screenYPos += yVel * deltaFrameTime;
+        yPos += yVel * deltaFrameTime;
+        yVel += acceleration * deltaFrameTime*1.0/10;
         clearScreen();
         draw();
         LCD.DrawHorizontalLine(230, 0, 319);
+        // @ts-ignore
         LCD.Update();
     }
 }
 
 void Player :: updatePos(float deltaTime)
 {
-    cout << "player pos updated\n";
-    xPos += xVel * 1.0/5;
-    yPos += yVel * 1.0/5;
-    yVel += acceleration * 1.0/50;
+    xPos += xVel * deltaFrameTime;
+    yPos += yVel * deltaFrameTime;
+    yVel += acceleration * deltaFrameTime * 1.0/10;
     LCD.WriteLine(xVel);
     LCD.WriteLine(yVel);
 }
 
 void Player :: endAnim(vector<Obstacle> obs)
 {
-    cout << "end anim\n";
     float floorPos = 239;
     while(screenXPos < 300 && screenYPos < floorPos - 10)
     {
-        screenXPos += xVel * 1.0/5;
-        xPos += xVel * 1.0/5;
-        screenYPos += yVel * 1.0/5;
-        yPos += yVel * 1.0/5;
-        yVel += acceleration * 1.0/50;
+        screenXPos += xVel * deltaFrameTime;
+        xPos += xVel * deltaFrameTime;
+        screenYPos += yVel * deltaFrameTime;
+        yPos += yVel * deltaFrameTime;
+        yVel += acceleration * deltaFrameTime*1.0/10;
         clearScreen();
         draw();
         floorPos -= yVel * 1.0/5;
         floorPos = min((int)floorPos, 230);
         LCD.DrawHorizontalLine(floorPos, 0, 319);
-        obs.erase(remove_if(obs.begin(),obs.end(),[&](Obstacle& ob) {return ob.updateScreenPos(getXVelocity(), getYVelocity(), deltaFrameTime) == true;}), obs.end());
+        obs.erase(remove_if(obs.begin(),obs.end(),[&](Obstacle& ob) {return ob.updateScreenPos(xVel, yVel) == true;}), obs.end());
         for (int i = 0; i < obs.size(); i++)
         {
             obs.at(i).draw();
-            //cout << i <<" - "<< obs.at(i).screenXPos<<" - "<<obs.at(i).screenYPos<<"\n";
         }
+        // @ts-ignore
         LCD.Update();
     }
 }
@@ -564,34 +620,49 @@ void Player :: multiplyAccel(float coef)
     acceleration *= coef;
 }
 
-void Player :: multiplyXVel(float coef)
+void Player::setXVel(float xVel)
 {
-    xVel *= coef;
+    this->xVel = xVel;
 }
 
-void Player :: multiplyYVel(float coef)
+void Player::setYVel(float yVel)
 {
-    yVel *= coef;
+    this->yVel = yVel;
 }
 
-Obstacle :: Obstacle(float screenXPos, float screenYPos)
+bool Obstacle :: updateScreenPos(float pXVel, float pYVel)
 {
-    this->screenXPos = screenXPos;
-    this->screenYPos = screenYPos;
-}
-void Obstacle :: setVals(float screenXPos, float screenYPos)
-{
-    this->screenXPos = screenXPos;
-    this->screenYPos = screenYPos;
-}
-
-bool Obstacle :: updateScreenPos(float xVel, float yVel, float deltaTime)
-{
-    screenXPos -= xVel * deltaTime;
-    screenYPos -= yVel * deltaTime;
-    if(screenXPos < 15 || screenYPos > 225 || screenXPos > 320 || screenYPos < 0)
+    screenXPos -= xVel * deltaFrameTime+pXVel*deltaFrameTime;
+    screenYPos -= yVel * deltaFrameTime+pYVel*deltaFrameTime;
+    //yVel += acceleration * deltaFrameTime * 1.0/10;
+    if(screenXPos < 10 || screenYPos > 240 || screenXPos > 320 || screenYPos < 10)
     {
         return true;
     }
     return false;
+}
+
+void Obstacle :: collide(Player *player)
+{
+    float distance = pow(pow(player->screenXPos-screenXPos,2)+pow(player->screenYPos-screenYPos,2),.5);
+    if(distance < 20 && !hasCollided)
+    {
+        cout<<player->mass <<" Player mass\n";
+        cout<<mass<<" ob mass\n";
+        //Original veloity x direction for player(ogvxp)
+        float ogvxp = player->getXVelocity();
+        float ogvyp = player->getYVelocity();
+        float ogvxo = -xVel;
+        float ogvyo = -yVel;
+
+        player->setXVel(((player->mass-mass)*ogvxp+2*mass*ogvxo)/(player->mass+mass));
+        player->setYVel(((player->mass-mass)*ogvyp+2*mass*ogvyo)/(player->mass+mass));
+        xVel = -((mass-player->mass)*ogvxo+2*player->mass*ogvxp)/(player->mass+mass);
+        yVel = -((mass-player->mass)*ogvyo+2*player->mass*ogvyp)/(player->mass+mass);
+        cout << ogvxp << " - " << player->xVel << "\n";
+        cout << ogvyp << " - " << player->yVel << "\n";
+        cout << ogvxo << " - " << xVel << "\n";
+        cout << ogvyo << " - " << yVel << "\n";
+        hasCollided = true;
+    }
 }
