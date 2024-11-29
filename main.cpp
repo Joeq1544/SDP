@@ -480,10 +480,16 @@ void gameState::EndScreen() // displays the final results of the game, accepting
 // don't need pointers since none of the values need to be modified
 {
     // increase total launches for stats screen, increase total points by given arclength
+<<<<<<< Updated upstream
     launches++; // increase total launches for stat screen
     pointsTot+=arcLength; // add arc length to current point value
     cout << arcLength <<" al "<< pointsTot<<" pt\n";
     previousDistance = arcLength; // fix issue in stat screen - set previous AL to the AL that just ran
+=======
+    launches++;
+    pointsTot+=arcLength;
+    previousDistance = arcLength;
+>>>>>>> Stashed changes
     LCD.Clear();
     // tell the user how many points they've earned/how far they went and their current point total
     LCD.WriteLine("Distance Traveled: ");
@@ -516,7 +522,7 @@ void gameState::EndScreen() // displays the final results of the game, accepting
             drawMenu(); // returns to menu
             choice = 1;
         }
-        if(menuButton.Pressed(x,y,1)==1)
+        if(resetButton.Pressed(x,y,1)==1)
         {
             displayGame(); // resets the game
             choice = 1;
@@ -647,8 +653,6 @@ void Obstacle :: collide(Player *player)
     float distance = pow(pow(player->screenXPos-screenXPos,2)+pow(player->screenYPos-screenYPos,2),.5);
     if(distance < 20 && !hasCollided)
     {
-        cout<<player->mass <<" Player mass\n";
-        cout<<mass<<" ob mass\n";
         //Original veloity x direction for player(ogvxp)
         float ogvxp = player->getXVelocity();
         float ogvyp = player->getYVelocity();
@@ -659,10 +663,6 @@ void Obstacle :: collide(Player *player)
         player->setYVel(((player->mass-mass)*ogvyp+2*mass*ogvyo)/(player->mass+mass));
         xVel = -((mass-player->mass)*ogvxo+2*player->mass*ogvxp)/(player->mass+mass);
         yVel = -((mass-player->mass)*ogvyo+2*player->mass*ogvyp)/(player->mass+mass);
-        cout << ogvxp << " - " << player->xVel << "\n";
-        cout << ogvyp << " - " << player->yVel << "\n";
-        cout << ogvxo << " - " << xVel << "\n";
-        cout << ogvyo << " - " << yVel << "\n";
         hasCollided = true;
     }
 }
