@@ -480,16 +480,9 @@ void gameState::EndScreen() // displays the final results of the game, accepting
 // don't need pointers since none of the values need to be modified
 {
     // increase total launches for stats screen, increase total points by given arclength
-<<<<<<< Updated upstream
-    launches++; // increase total launches for stat screen
-    pointsTot+=arcLength; // add arc length to current point value
-    cout << arcLength <<" al "<< pointsTot<<" pt\n";
-    previousDistance = arcLength; // fix issue in stat screen - set previous AL to the AL that just ran
-=======
     launches++;
     pointsTot+=arcLength;
     previousDistance = arcLength;
->>>>>>> Stashed changes
     LCD.Clear();
     // tell the user how many points they've earned/how far they went and their current point total
     LCD.WriteLine("Distance Traveled: ");
