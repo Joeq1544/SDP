@@ -1,6 +1,7 @@
 #include "FEHLCD.h"
 #include "FEHUtility.h"
 #include <FEHRandom.h>
+#include <FEHImages.h>
 #include <math.h>
 #include <vector>
 #include <algorithm>
@@ -33,6 +34,7 @@ class Projectile
         float yVel;
         float acceleration = 1;
         float mass;
+        FEHImage image;
     public:
         Projectile(){};
         Projectile(float screenXPos, float screenYPos, float xVel, float yVel, float mass);
@@ -157,6 +159,7 @@ gameState :: gameState(int launches, float arclength, float pointsTot, float sta
 void gameState :: initPlayer(float xPos, float yPos, float xVel, float yVel, float screenXPos, float screenYPos, float mass)
 {
     player.init(xPos, yPos, xVel, yVel, screenXPos, screenYPos, mass);
+    player.image.Open("penguin.png");
 }
 
 void gameState :: drawMenu()
@@ -261,6 +264,7 @@ void gameState :: runGame()
                 Obstacle temp(x,y,0, 0, obMass);
                 obs.push_back(temp);
             }
+            obs.back().image.Open("flappy.png");
         }
         clearScreen();
         obs.erase(remove_if(obs.begin(),obs.end(),[&](Obstacle& ob) {return ob.updateScreenPos(player.xVel,player.yVel) == true;}), obs.end());
@@ -534,7 +538,7 @@ Projectile :: Projectile(float screenXPos, float screenYPos, float xVel, float y
 
 void Projectile :: draw()
 {
-    LCD.DrawCircle(screenXPos, screenYPos, 10);
+    image.Draw(screenXPos,screenYPos);
 }
 
 void Player :: init(float xPos, float yPos, float xVel, float yVel, float screenXPos, float screenYPos, float mass)
