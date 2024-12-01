@@ -570,8 +570,14 @@ void Player :: updatePos(float deltaTime)
     xPos += xVel * deltaFrameTime;
     yPos += yVel * deltaFrameTime;
     yVel += acceleration * deltaFrameTime * 1.0/10;
+    LCD.Write("X Position: ");
+    LCD.WriteLine(xPos);
+    LCD.Write("X Velocity:");
     LCD.WriteLine(xVel);
-    LCD.WriteLine(yVel);
+    LCD.Write("Y Position: ");
+    LCD.WriteLine(-yPos);
+    LCD.Write("Y Velocity:");
+    LCD.WriteLine(-yVel);
 }
 
 void Player :: endAnim(vector<Obstacle> obs)
