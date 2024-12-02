@@ -23,69 +23,65 @@ void clearScreen();
 //CLASSES
 //
 
+//Forward declaration of player class, so the obstacle class can refrence it in a method.
 class Player;
 
+//Projectile class, this class will not be constructed itself but will be used as the superclass for the obstacle and player classes.
 class Projectile
 {
     public:
-        float screenXPos;
-        float screenYPos;
-        float xVel;
-        float yVel;
-        float acceleration = 1;
-        float mass;
-        FEHImage image;
+        float screenXPos; //X Position of the projectile on the screen.
+        float screenYPos; //Y Position of the projectile on the screen.
+        float xVel;//X velocity of the projectile.
+        float yVel;//Y velocity of the projectile.
+        float acceleration = 1; //Acceleration of projectile, will start at 1 for all projectiles.
+        float mass;// Mass of the projectile, will affect collisions between two projectiles.
+        FEHImage image; //Image object that will be drawn at the projectiles position.
     public:
-        Projectile(){};
-        Projectile(float screenXPos, float screenYPos, float xVel, float yVel, float mass);
-        void draw();
+        Projectile(){}; //Default constructor.
+        Projectile(float screenXPos, float screenYPos, float xVel, float yVel, float mass);//Parameterized constructor
+        void draw(); //Draws the image object at the screen position.
 };
 
 class Obstacle : public Projectile
 {
     private:
-        bool hasCollided = false;
+        bool hasCollided = false; //Boolean so each obstacle can only collide with the player once.
     public:
-        Obstacle(){};
-        Obstacle(float screenXPos, float screenYPos, float xVel, float yVel, float mass) : Projectile(screenXPos, screenYPos, xVel, yVel, mass)
-        {
-            // this->screenXPos = screenXPos;
-            // this->screenYPos = screenYPos;
-            // this->xVel = xVel;
-            // this->yVel = yVel;
-        };
-        bool updateScreenPos(float pXVel, float PYVel); 
-        void collide(Player *player);
-        friend class Player;
+        Obstacle(){};//Default constructor
+        Obstacle(float screenXPos, float screenYPos, float xVel, float yVel, float mass) : Projectile(screenXPos, screenYPos, xVel, yVel, mass){};//Parameterized constructor
+        bool updateScreenPos(float pXVel, float PYVel); //Updates the screen position fields based on the relative velocity of the obstacle to the player.
+        void collide(Player *player);//Checks if the obstacle is within a distance to the player and updates the player and obstacles velocity if so.
 };
 
 class Player : public Projectile
 {
     protected:
-        float xPos;
-        float yPos;
+        float xPos; //X Position of the player relative to where it started in the game world, not related to screen position.
+        float yPos;//Y Position of the player relative to where it started in the game world, not related to screen position.
     public:
-        Player() : Projectile(){};
+        Player() : Projectile(){}; // Default constructor.
         Player(float xPos, float yPos, float xVel, float yVel, float screenXPos, float screenYPos, float mass) : Projectile(screenXPos, screenYPos, xVel, yVel, mass){
+            //Calls the superclass contructor, sets the subclass fields in this body.
             this->xPos = xPos;
             this->yPos = yPos;
-        };
-        void init(float xPos, float yPos, float xVel, float yVel, float screenXPos, float screenYPos, float mass);
-        void startAnim();
-        void updatePos(float deltaTime);
-        void endAnim(vector<Obstacle> obs);
-        float getXVelocity();
-        float getYVelocity();
-        float getY();
-        void multiplyAccel(float);
-        void setXVel(float xVel);
-        void setYVel(float yVel);
+        };//Parameterized constructor
+        void init(float xPos, float yPos, float xVel, float yVel, float screenXPos, float screenYPos, float mass);//Sets all variables
+        void startAnim();//Takes the player from the bottom left of the screen to the middle to act like a launch
+        void updatePos(float deltaTime);//Calculates the new x and y coordinates of the player based on velocity, also updates velocity using acceleration
+        void endAnim(vector<Obstacle> obs);//When the player is approaching the ground, draws player going from middle of screen to landing on ground.
+        float getXVelocity();//Returns xVel
+        float getYVelocity();//Returns yVel
+        float getY();//Returns yPos
+        void multiplyAccel(float);//Multiplies the accerlation by the argument.
+        void setXVel(float xVel);//Sets the xVelocity, will be changed by collision
+        void setYVel(float yVel);//Sets the yVelocity, will be changed by collision
 };
 
 class gameState
 {
     private:
-        Player player;
+        Player player; //The game will contain one player object
         float startingVelocity; // initial speed of the launch
         int launches; // total number of times played during code running
         float arcLength = 0; // arc length of the current round
